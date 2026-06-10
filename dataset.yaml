@@ -1,0 +1,11 @@
+path: data/yolo_format
+
+train: images/train
+val:   images/val
+test:  images/test
+
+nc: 3
+names:
+  0: with_mask
+  1: without_mask
+  2: mask_weared_incorrectly
