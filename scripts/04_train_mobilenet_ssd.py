@@ -123,7 +123,7 @@ def train():
     # Replace the classification head for our 4 classes (3 + background)
     in_channels = [672, 480, 512, 256, 256, 128]
     num_anchors = model.anchor_generator.num_anchors_per_location()
-    model.head.classification_head = torchvision.models.detection.ssdlite._prediction_layer(
+    model.head.classification_head = torchvision.models.detection.ssdlite._prediction_block(
         in_channels, num_anchors, NUM_CLASSES, norm_layer=torch.nn.BatchNorm2d
     )
 
