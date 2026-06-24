@@ -12,6 +12,8 @@
 #    ourselves would shrink the image but leave the boxes in original
 #    coordinates, which silently corrupts the targets. So we only convert the
 #    PIL image to a [0,1] tensor and let the model handle the rest.
+#  - Weights are saved in float16 (half precision) to match Ultralytics YOLO
+#    saving format, ensuring a fair file size comparison between models.
 
 import torch
 import torchvision
@@ -41,6 +43,19 @@ PROJECT     = Path("results/mobilenet_ssd")
 NUM_CLASSES = 4            # 3 real classes + 1 background (index 0 is background in torchvision)
 SEED        = 50           # match the split seed used in 01_prepare_data.py
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+def save_half(model, path):
+    """
+    Save model weights in float16 (half precision) to match the Ultralytics
+    YOLO saving format and ensure a fair file size comparison between models.
+    Integer tensors (e.g. BatchNorm counters) are kept as-is.
+    """
+    half_state = {
+        k: v.half() if v.is_floating_point() else v
+        for k, v in model.state_dict().items()
+    }
+    torch.save(half_state, path)
 
 
 class FaceMaskDataset(Dataset):
@@ -235,7 +250,7 @@ def train():
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), PROJECT / "best.pt")
+            save_half(model, PROJECT / "best.pt")  # float16 — matches YOLO format
             print(f"   ✅ new best val loss {best_val_loss:.4f} — saved best.pt")
         else:
             patience_counter += 1
@@ -245,7 +260,7 @@ def train():
                 break
 
     # Always keep the final-epoch weights too, for reference.
-    torch.save(model.state_dict(), PROJECT / "last.pt")
+    save_half(model, PROJECT / "last.pt")  # float16 — matches YOLO format
 
     print(f"\n✅ Training complete! Best val loss: {best_val_loss:.4f}")
     print(f"   Best weights: {PROJECT}/best.pt")
