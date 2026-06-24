@@ -1,7 +1,6 @@
 # Dataset 
 Face_Mask_Detection_Dataset/
-data/raw/
-data/yolo_format/
+data/
 
 # Model weights (too large)
 results/**/*.pt
