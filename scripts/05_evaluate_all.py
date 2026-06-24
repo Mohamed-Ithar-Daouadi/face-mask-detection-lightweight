@@ -144,7 +144,7 @@ def evaluate_mobilenet(weights_path, test_imgs):
     model = build_mobilenet()
     model.load_state_dict(torch.load(str(weights_path), map_location=DEVICE))
     model.eval().to(DEVICE)
-    metric = MeanAveragePrecision(box_format="xyxy")
+    metric = MeanAveragePrecision(box_format="xyxy", max_detection_thresholds=[1, 10, 300])
 
     times = []
     with torch.no_grad():
