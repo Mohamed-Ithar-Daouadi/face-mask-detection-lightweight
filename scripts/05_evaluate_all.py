@@ -13,6 +13,7 @@
 # For each model we report:
 #   - mAP@0.5            (primary metric for this use case)
 #   - mAP@0.5:0.95       (stricter localization metric, for completeness)
+#   - per-class mAP@0.5  (to see how each class is handled)
 #   - inference speed    (ms per image, GPU, warmed up)
 #   - model size         (MB on disk)
 #
@@ -43,7 +44,7 @@ TEST_LABELS = DATA_DIR / "labels" / "test"
 DEVICE      = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 NUM_CLASSES = 4            # 3 classes + background (MobileNet-SSD)
 WARMUP      = 5            # warmup inferences before timing (GPU spin-up)
-CLASS_NAMES = {0: "with_mask", 1: "without_mask", 2: "mask_weared_incorrectly"}
+CLASS_NAMES = {0: "with_mask", 1: "without_mask", 2: "mask_weared_incorrect"}
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -56,7 +57,6 @@ def find_weights(candidates):
     name = Path(candidates[0]).name
     for root in ["runs", "results", "."]:
         hits = list(Path(root).rglob(name)) if Path(root).exists() else []
-        # prefer paths that mention the model folder hint
         for h in hits:
             return h
     return None
@@ -109,7 +109,7 @@ def build_mobilenet():
 def evaluate_yolo(weights_path, test_imgs):
     """Run a YOLO model over the test set; return (metric_result, ms_per_image)."""
     model = YOLO(str(weights_path))
-    metric = MeanAveragePrecision(box_format="xyxy")
+    metric = MeanAveragePrecision(box_format="xyxy", class_metrics=True)
 
     times = []
     for i, img_path in enumerate(test_imgs):
@@ -144,7 +144,7 @@ def evaluate_mobilenet(weights_path, test_imgs):
     model = build_mobilenet()
     model.load_state_dict(torch.load(str(weights_path), map_location=DEVICE))
     model.eval().to(DEVICE)
-    metric = MeanAveragePrecision(box_format="xyxy")
+    metric = MeanAveragePrecision(box_format="xyxy", class_metrics=True)
 
     times = []
     with torch.no_grad():
@@ -175,6 +175,27 @@ def evaluate_mobilenet(weights_path, test_imgs):
 
     ms = 1000.0 * sum(times) / max(1, len(times))
     return metric.compute(), ms
+
+
+def per_class_map50(res):
+    """
+    Pull per-class mAP@0.5 out of a torchmetrics result.
+    Returns a dict {class_name: map50}. When class_metrics=True, torchmetrics
+    returns 'map_50_per_class' and 'classes' (the class ids each value refers to).
+    """
+    out = {}
+    if "map_per_class" not in res:
+        return out
+    classes = res.get("classes")
+    # Prefer the @0.5 per-class values if available, else fall back to map_per_class
+    per_class = res.get("map_50_per_class", res.get("map_per_class"))
+    if classes is None or per_class is None:
+        return out
+    classes = classes.tolist() if hasattr(classes, "tolist") else list(classes)
+    per_class = per_class.tolist() if hasattr(per_class, "tolist") else list(per_class)
+    for cid, val in zip(classes, per_class):
+        out[CLASS_NAMES.get(int(cid), str(cid))] = float(val)
+    return out
 
 
 def size_mb(path):
@@ -209,6 +230,7 @@ def main():
     }
 
     rows = []
+    per_class_rows = {}
     for name, cfg in models.items():
         w = cfg["weights"]
         if w is None or not Path(w).exists():
@@ -224,8 +246,13 @@ def main():
         map50    = float(res["map_50"])
         map5095  = float(res["map"])
         rows.append((name, map50, map5095, ms, size_mb(w)))
+        per_class_rows[name] = per_class_map50(res)
+
         print(f"  mAP@0.5 = {map50:.3f} | mAP@0.5:0.95 = {map5095:.3f} | "
-              f"{ms:.2f} ms/img | {size_mb(w):.1f} MB\n")
+              f"{ms:.2f} ms/img | {size_mb(w):.1f} MB")
+        for cname, cval in per_class_rows[name].items():
+            print(f"      {cname:<24} mAP@0.5 = {cval:.3f}")
+        print()
 
     # ── Summary table ──
     print("=" * 74)
@@ -235,7 +262,7 @@ def main():
         print(f"{name:<16}{m50:>10.3f}{m5095:>12.3f}{ms:>10.2f}{sz:>12.1f}")
     print("=" * 74)
 
-    # save to CSV for the report
+    # save overall results to CSV for the report
     out = Path("results/comparison.csv")
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w") as f:
@@ -243,6 +270,15 @@ def main():
         for name, m50, m5095, ms, sz in rows:
             f.write(f"{name},{m50:.4f},{m5095:.4f},{ms:.3f},{sz:.2f}\n")
     print(f"\nSaved results to {out}")
+
+    # save per-class results to a second CSV
+    pc_out = Path("results/per_class.csv")
+    with open(pc_out, "w") as f:
+        f.write("model,class,map50\n")
+        for name, classes in per_class_rows.items():
+            for cname, cval in classes.items():
+                f.write(f"{name},{cname},{cval:.4f}\n")
+    print(f"Saved per-class results to {pc_out}")
 
 
 if __name__ == "__main__":
