@@ -10,9 +10,9 @@ A comparative study of three lightweight object-detection models for real-time f
 
 | Model | mAP@0.5 | mAP@0.5:0.95 | Speed (ms/img) | Size (MB) |
 |---|---|---|---|---|
-| YOLOv5n | **0.925** | 0.703 | 13.46 | 5.3 |
-| YOLOv8n | 0.907 | **0.708** | 12.30 | 6.2 |
-| MobileNet-SSD | 0.748 | 0.458 | **8.30** | **4.7** |
+| YOLOv5n | **0.765** | **0.527** | 13.46 | 5.3 |
+| YOLOv8n | 0.692 | 0.481 | 12.12 | 6.2 |
+| MobileNet-SSD | 0.328 | 0.168 | **7.97** | **4.7** |
 
 > All models evaluated on the same held-out test set using the same mAP implementation (torchmetrics), following the standard COCO protocol.
 
@@ -106,13 +106,3 @@ Produces four charts saved to `results/figures/`: accuracy bar chart, speed bar 
 - **Framework-independent evaluation** — torchmetrics mAP used for all three models so results are directly comparable
 
 ---
-
-## Project Context
-
-This project was developed as part of the Deep Vision course at OTH Amberg-Weiden. The full technical report is available in the repository.
-
----
-
-## License
-
-MIT
