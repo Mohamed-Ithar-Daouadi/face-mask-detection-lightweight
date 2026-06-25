@@ -55,7 +55,14 @@ pip install -r requirements.txt
 ```
 
 ---
+## Pretrained Models
 
+The trained model weights are hosted in this GitHub repository. To run the evaluation script locally, ensure the downloaded weights are placed in their respective directories:
+
+- **YOLOv5n:** `results/yolov5n/weights/best.pt`
+- **YOLOv8n:** `results/yolov8n/weights/best.pt`
+- **MobileNet-SSD:** `results/mobilenet_ssd/best.pt`
+---
 ## Dataset
 
 Download the Face Mask Detection dataset from Kaggle:
