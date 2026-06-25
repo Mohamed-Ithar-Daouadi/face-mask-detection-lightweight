@@ -1,0 +1,10 @@
+model,class,map50
+YOLOv5n,with_mask,0.6188
+YOLOv5n,without_mask,0.4802
+YOLOv5n,mask_weared_incorrect,0.4820
+YOLOv8n,with_mask,0.6115
+YOLOv8n,without_mask,0.4296
+YOLOv8n,mask_weared_incorrect,0.4030
+MobileNet-SSD,with_mask,0.2914
+MobileNet-SSD,without_mask,0.1689
+MobileNet-SSD,mask_weared_incorrect,0.0448
