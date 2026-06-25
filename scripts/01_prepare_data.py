@@ -46,6 +46,10 @@ def voc_to_yolo(xml_path, img_w, img_h):
         lines.append(f"{CLASS_MAP[cls]} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
     return lines
 
+# ── Wipe output folder to prevent leakage from previous runs ──
+if OUT_DIR.exists():
+    shutil.rmtree(OUT_DIR)
+    
 # ── Create output folders ─────────────────────────
 for split in ['train', 'val', 'test']:
     (OUT_DIR / 'images' / split).mkdir(parents=True, exist_ok=True)
